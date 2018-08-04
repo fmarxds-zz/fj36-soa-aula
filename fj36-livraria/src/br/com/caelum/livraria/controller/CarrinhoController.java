@@ -1,5 +1,7 @@
 package br.com.caelum.livraria.controller;
 
+import java.net.URISyntaxException;
+
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -67,7 +69,7 @@ public class CarrinhoController{
 	@RequestMapping("/criarPagamento")
 	public String criarPagamento(String numeroCartao, 
 								 String titularCartao, 
-								 RedirectAttributes modelo) {
+								 RedirectAttributes modelo) throws URISyntaxException {
 	
         if(!ehStringVazia(titularCartao) && !ehStringVazia(numeroCartao)){
 			carrinho.setNumeroCartao(numeroCartao);
@@ -103,7 +105,7 @@ public class CarrinhoController{
 
 	@RequestMapping("/finalizar")
 	@Transactional
-	public String finalizarPedido(RedirectAttributes modelo) {
+	public String finalizarPedido(RedirectAttributes modelo) throws URISyntaxException {
 		
 		if(!carrinho.isFreteCalculado()) {
 			modelo.addFlashAttribute("messageWarn", "O Frete deve ser calculado.");

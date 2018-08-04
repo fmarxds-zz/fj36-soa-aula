@@ -2,6 +2,7 @@ package br.com.caelum.livraria.modelo;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.LinkedHashSet;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Component;
 import com.google.common.base.Predicate;
 import com.google.common.collect.Iterables;
 
+import br.com.caelum.correios.soap.ConsumidorServicoCorreios;
 import br.com.caelum.estoque.soap.EstoqueWs;
 import br.com.caelum.estoque.soap.EstoqueWsService;
 import br.com.caelum.estoque.soap.ItemEstoque;
@@ -72,7 +74,7 @@ public class Carrinho implements Serializable {
 		cancelarPagamento();
 	}
 
-	public Pagamento criarPagamento(String numeroCartao, String nomeTitular) {
+	public Pagamento criarPagamento(String numeroCartao, String nomeTitular) throws URISyntaxException {
 		Transacao transacao = new Transacao();
 		transacao.setNumero(numeroCartao);
 		transacao.setTitular(nomeTitular);
@@ -88,7 +90,7 @@ public class Carrinho implements Serializable {
 		//poderia ter chamada do WS para cancelar o pagamento
 	}
 
-	public Pedido finalizarPedido() {
+	public Pedido finalizarPedido() throws URISyntaxException {
 
 		Pedido pedido = new Pedido();
 		pedido.setData(Calendar.getInstance());
@@ -106,7 +108,8 @@ public class Carrinho implements Serializable {
 	public void atualizarFrete(final String novoCepDestino) {
 		this.cepDestino = novoCepDestino;
 
-		//servico web do correios aqui
+		ConsumidorServicoCorreios servicoCorreios = new ConsumidorServicoCorreios();
+		this.valorFrete = servicoCorreios.calculaFrete(novoCepDestino);
 	}
 
 	public String getCepDestino() {
