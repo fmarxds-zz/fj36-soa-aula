@@ -10,14 +10,28 @@ import org.apache.camel.Message;
 import org.apache.camel.Processor;
 import org.apache.camel.builder.RouteBuilder;
 import org.apache.camel.impl.DefaultCamelContext;
+import org.apache.camel.util.jndi.JndiContext;
+
+import com.mysql.jdbc.jdbc2.optional.MysqlConnectionPoolDataSource;
 
 import br.com.caelum.livraria.modelo.Livro;
 
 public class TestePolling {
 	
+	@SuppressWarnings("resource")
 	public static void main(String[] args) throws Exception {
 		
-		CamelContext ctx = new DefaultCamelContext();
+		MysqlConnectionPoolDataSource dataSource = new MysqlConnectionPoolDataSource();
+		dataSource.setServerName("localhost");
+		dataSource.setDatabaseName("fj36_camel");
+		dataSource.setPort(3306);
+		dataSource.setUser("root");
+		dataSource.setPassword("caelum");
+		
+		JndiContext jndiContext = new JndiContext();
+		jndiContext.rebind("mysqlDataSource", dataSource);
+		
+		CamelContext ctx = new DefaultCamelContext(jndiContext);
 		ctx.addRoutes(new RouteBuilder() {
 			
 			@Override
@@ -26,6 +40,7 @@ public class TestePolling {
 				.unmarshal()
 					.json()
 				.process(new Processor() {
+					@SuppressWarnings("unchecked")
 					@Override
 					public void process(Exchange exchange) throws Exception {
 						List<?> listaDeLivros = (List<?>) exchange.getIn().getBody();
@@ -37,7 +52,22 @@ public class TestePolling {
 					}
 				})
 				.log("${body}")
-				.to("mock:livros");
+				.to("direct:livros");
+				
+				from("direct:livros")
+				.split(body())
+				.process(new Processor() {
+					@Override
+					public void process(Exchange exchange) throws Exception {
+						Message inboud = exchange.getIn();
+						Livro livro = inboud.getBody(Livro.class);
+						String nomeAutor = livro.getNomeAutor();
+						System.out.println();
+						inboud.setHeader("nomeAutor", nomeAutor);
+					}
+				})
+				.setBody(simple("INSERT INTO Livros (nomeAutor) values (:?nomeAutor)"))
+				.to("jdbc:mysqlDataSource?useHeadersAsParameters=true");
 			}
 		});
 		
